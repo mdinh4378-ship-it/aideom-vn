@@ -547,10 +547,54 @@ elif menu == 'Bài 10: Stochastic 2':
             st.write('- **VSS:** Đo lường chi phí cơ hội nếu chúng ta dự báo sai rủi ro ngay từ đầu.')
 
 elif menu == 'Bài 11: DQN':
-    st.title('Bài 11: Deep Q-Network')
-    ep = np.arange(0, 1000, 50)
-    reward = 100 - 80 * np.exp(-0.005 * ep)
-    st.line_chart(pd.DataFrame({'Epoch': ep, 'Reward': reward}).set_index('Epoch'))
+    st.title('Bài 11: Deep Q-Network (DQN)')
+    st.markdown('Sử dụng Mạng nơ-ron sâu để ước lượng hàm Q(s, a) trong môi trường phức tạp.')
+
+    col1, col2 = st.columns([1, 3])
+
+    with col1:
+        st.subheader('Tham số huấn luyện')
+        lr = st.slider('Learning Rate', 0.0001, 0.01, 0.001, format="%.4f")
+        if st.button('Khởi động mô phỏng'):
+            st.session_state.dqn_running = True
+
+    with col2:
+        tab1, tab2 = st.tabs(['Hội tụ (Loss & Reward)', 'Kiến trúc mạng (DQN)'])
+        
+        with tab1:
+            # Mô phỏng quá trình training của mạng nơ-ron
+            episodes = np.arange(0, 1000, 50)
+            reward = 100 - 80 * np.exp(-0.005 * episodes) + np.random.normal(0, 2, len(episodes))
+            loss = 50 * np.exp(-0.01 * episodes) + np.random.normal(0, 1, len(episodes))
+            
+            df_dqn = pd.DataFrame({'Epoch': episodes, 'Reward': reward, 'Loss': loss})
+            
+            fig = go.Figure()
+            fig.add_trace(go.Scatter(x=df_dqn['Epoch'], y=df_dqn['Reward'], name='Reward (Phần thưởng)', line=dict(color='#10b981')))
+            fig.add_trace(go.Scatter(x=df_dqn['Epoch'], y=df_dqn['Loss'], name='Loss (Mất mát)', line=dict(color='#ef4444')))
+            fig.update_layout(title='Quá trình học của DQN Agent', xaxis_title='Epoch', yaxis_title='Giá trị')
+            st.plotly_chart(fig, use_container_width=True)
+            
+            st.write('Đường Reward đi lên và Loss đi xuống cho thấy mạng nơ-ron đang hội tụ về chính sách tối ưu.')
+
+        with tab2:
+            st.markdown('**Cấu trúc Mạng nơ-ron DQN:**')
+            st.code('''
+import torch.nn as nn
+class DQN(nn.Module):
+    def __init__(self, n_obs, n_act):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Linear(n_obs, 128),
+            nn.ReLU(),
+            nn.Linear(128, 128),
+            nn.ReLU(),
+            nn.Linear(128, n_act)
+        )
+    def forward(self, x):
+        return self.net(x)
+            ''', language='python')
+            st.write('Mạng này nhận "trạng thái" làm đầu vào và xuất ra "Giá trị Q" cho tất cả các hành động có thể thực hiện.')
 
 elif menu == 'Bài 12: Tổng hợp':
     st.title('Bài 12: Đồ án Tổng hợp')
