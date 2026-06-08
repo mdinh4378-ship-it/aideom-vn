@@ -597,21 +597,33 @@ class DQN(nn.Module):
             st.write('Mạng này nhận "trạng thái" làm đầu vào và xuất ra "Giá trị Q" cho tất cả các hành động có thể thực hiện.')
 
 elif menu == 'Bài 12: Tổng hợp':
-    st.title('Bài 12: Đồ án Tổng hợp')
-    scen = st.selectbox('Kịch bản', ['S1: Cơ sở', 'S4: Tối ưu'])
-    col1, col2, col3 = st.columns(3)
-    if scen == 'S1: Cơ sở':
-        col1.metric('GDP', 12.5)
-        col2.metric('CO2', 80)
-        col3.metric('Ngân sách', 100)
-    else:
-        col1.metric('GDP', 15.5, 3.0)
-        col2.metric('CO2', 20, -60)
-        col3.metric('Ngân sách', 110, 10)
-    
-    df = pd.DataFrame(dict(
-        r=[85, 90, 85, 85, 95] if scen == 'S4: Tối ưu' else [70, 60, 65, 50, 60],
+    st.title('Bài 12: Đồ án Tổng hợp (Master Dashboard)')
+    st.markdown('Hệ thống tích hợp dữ liệu từ các bài toán vĩ mô, tối ưu hóa và trí tuệ nhân tạo.')
+
+    scenario = st.selectbox('Lựa chọn Kịch bản chiến lược:', ['S1: Cơ sở (Base)', 'S2: Bùng nổ AI (Tech-Driven)', 'S3: Chuyển đổi Xanh (COP26)', 'S4: AIDEOM-VN Tối ưu (Optimal)'])
+
+    # Dữ liệu mô phỏng cho từng kịch bản
+    data = {
+        'S1: Cơ sở (Base)': {'gdp': 12.5, 'budget': 100, 'co2': 80, 'eq': 'Trung bình', 'radar': [70, 60, 65, 50, 60]},
+        'S2: Bùng nổ AI (Tech-Driven)': {'gdp': 18.2, 'budget': 120, 'co2': 150, 'eq': 'Kém', 'radar': [95, 100, 30, 20, 85]},
+        'S3: Chuyển đổi Xanh (COP26)': {'gdp': 10.8, 'budget': 90, 'co2': -10, 'eq': 'Khá', 'radar': [50, 70, 80, 100, 70]},
+        'S4: AIDEOM-VN Tối ưu (Optimal)': {'gdp': 15.5, 'budget': 110, 'co2': 20, 'eq': 'Tốt', 'radar': [85, 90, 85, 85, 95]}
+    }
+    cur = data[scenario]
+
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric('GDP 2030 (Tr.Tỷ)', cur['gdp'])
+    col2.metric('Ngân sách (k Tỷ)', cur['budget'])
+    col3.metric('Phát thải CO2 (MT)', cur['co2'])
+    col4.metric('Bình đẳng vùng', cur['eq'])
+
+    st.subheader('Đánh giá tổng hợp (Radar Chart)')
+    df_radar = pd.DataFrame(dict(
+        r=cur['radar'],
         theta=['Kinh tế', 'Công nghệ', 'Vùng miền', 'Môi trường', 'Nhân lực']))
-    fig = px.line_polar(df, r='r', theta='theta', line_close=True)
+    
+    fig = px.line_polar(df_radar, r='r', theta='theta', line_close=True)
     fig.update_traces(fill='toself')
     st.plotly_chart(fig, use_container_width=True)
+
+    st.warning('Đồ án này đã tích hợp các mô hình: Cobb-Douglas (B1), Tối ưu tuyến tính (B2-3), Đa mục tiêu (B4), Tối ưu hóa động (B6) và RL/DQN (B7-11).')
