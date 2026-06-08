@@ -368,9 +368,51 @@ elif menu == 'Bài 6: DP':
             st.write('Đây là mô hình quy hoạch động xác định (Deterministic DP). Ở các bài sau, chúng ta sẽ mở rộng sang stochastic.')
 
 elif menu == 'Bài 7: RL':
-    st.title('Bài 7: Học tăng cường')
-    st.write('Q-Values mô phỏng sau quá trình huấn luyện.')
-    st.bar_chart(pd.DataFrame({'Lớp': ['Phổ thông', 'Bậc trung', 'Cao cấp'], 'Q': [5.2, 1.1, -0.5]}).set_index('Lớp'))
+    st.title('Bài 7: Học tăng cường (Reinforcement Learning)')
+    st.markdown('Agent AI tự học chính sách đào tạo lao động bằng thuật toán Q-Learning.')
+
+    col1, col2 = st.columns([1, 3])
+
+    with col1:
+        st.subheader('Tham số huấn luyện')
+        lr = st.slider('Tốc độ học (Alpha)', 0.01, 0.5, 0.1)
+        gamma = st.slider('Tỷ lệ chiết khấu (Gamma)', 0.5, 0.99, 0.9)
+        if st.button('Bắt đầu huấn luyện'):
+            st.session_state.rl_running = True
+
+    with col2:
+        tab1, tab2 = st.tabs(['Dashboard Huấn luyện', 'Cấu trúc Q-Learning'])
+        
+        with tab1:
+            if 'q_table' not in st.session_state:
+                st.session_state.q_table = np.zeros((3, 2)) # 3 Trạng thái, 2 Hành động
+            
+            # Mô phỏng quá trình hội tụ
+            if st.session_state.get('rl_running'):
+                # Cập nhật Q-table đơn giản
+                for s in range(3):
+                    action = np.random.randint(2)
+                    reward = 5 if s == 0 and action == 1 else -1
+                    st.session_state.q_table[s, action] += lr * (reward + gamma * 0 - st.session_state.q_table[s, action])
+                st.success('Đang huấn luyện Agent...')
+            
+            df_q = pd.DataFrame(st.session_state.q_table, 
+                                columns=['Bỏ mặc', 'Đào tạo'], 
+                                index=['LĐ Phổ thông', 'Kỹ năng Vừa', 'Kỹ năng Cao'])
+            
+            fig = px.imshow(df_q, text_auto=True, title='Q-Table (Giá trị Hành động tại mỗi Trạng thái)', color_continuous_scale='RdBu')
+            st.plotly_chart(fig, use_container_width=True)
+
+        with tab2:
+            st.markdown('**1. Hàm cập nhật Q-Value (Bellman Equation):**')
+            st.latex(r'''
+            Q(s, a) \leftarrow Q(s, a) + \alpha [R + \gamma \max_{a'} Q(s', a') - Q(s, a)]
+            ''')
+            st.markdown('**2. Các thành phần:**')
+            st.write('- **Trạng thái (s):** Trình độ lao động hiện tại.')
+            st.write('- **Hành động (a):** Đào tạo hoặc Bỏ mặc.')
+            st.write('- **Phần thưởng (R):** Tăng trưởng năng suất sau đào tạo.')
+            st.write('Agent sẽ dần ưu tiên các hành động có giá trị Q cao nhất (ô màu xanh đậm trên Q-Table).')
 
 elif menu == 'Bài 8: CGE':
     st.title('Bài 8: Cân bằng Tổng quát')
