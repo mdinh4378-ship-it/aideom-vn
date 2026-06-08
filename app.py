@@ -415,15 +415,49 @@ elif menu == 'Bài 7: RL':
             st.write('Agent sẽ dần ưu tiên các hành động có giá trị Q cao nhất (ô màu xanh đậm trên Q-Table).')
 
 elif menu == 'Bài 8: CGE':
-    st.title('Bài 8: Cân bằng Tổng quát')
-    tax = st.slider('Thuế Carbon', 0, 60, 20)
-    p = np.arange(10, 100, 10)
-    d = 120 - p
-    s = 20 + 1.5 * (p - tax)
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(x=p, y=d, name='Cầu'))
-    fig.add_trace(go.Scatter(x=p, y=s, name='Cung'))
-    st.plotly_chart(fig, use_container_width=True)
+    st.title('Bài 8: Cân bằng Tổng quát (CGE)')
+    st.markdown('Mô phỏng sự dịch chuyển của Giá và Sản lượng thị trường khi áp Thuế Carbon.')
+
+    col1, col2 = st.columns([1, 3])
+
+    with col1:
+        st.subheader('Thông số chính sách')
+        carbon_tax = st.slider('Mức Thuế Carbon ($/tấn)', 0, 60, 20)
+        st.info('Thuế Carbon làm tăng chi phí biên của doanh nghiệp, đẩy đường Cung sang trái.')
+
+    with col2:
+        tab1, tab2 = st.tabs(['Đồ thị Cân bằng', 'Mô hình Toán học'])
+        
+        with tab1:
+            # Đường cầu: Qd = 120 - P
+            # Đường cung bị ảnh hưởng bởi Thuế: Qs = 20 + 1.5 * (P - Tax)
+            prices = np.linspace(20, 100, 50)
+            demand = 120 - prices
+            supply = 20 + 1.5 * (prices - carbon_tax)
+            
+            # Tính điểm cân bằng: 120 - P = 20 + 1.5P - 1.5*Tax => 2.5P = 100 + 1.5*Tax
+            p_eq = (100 + 1.5 * carbon_tax) / 2.5
+            q_eq = 120 - p_eq
+            
+            fig = go.Figure()
+            fig.add_trace(go.Scatter(x=demand, y=prices, name='Đường Cầu (Qd)', line=dict(color='blue', width=3)))
+            fig.add_trace(go.Scatter(x=supply, y=prices, name='Đường Cung (Qs)', line=dict(color='red', width=3)))
+            fig.add_trace(go.Scatter(x=[q_eq], y=[p_eq], mode='markers', name='Điểm cân bằng', marker=dict(size=12, color='black')))
+            
+            fig.update_layout(title='Cân bằng Thị trường (P*, Q*)', xaxis_title='Sản lượng (Q)', yaxis_title='Giá (P)')
+            st.plotly_chart(fig, use_container_width=True)
+            st.metric('Giá cân bằng thị trường (P*)', f'${p_eq:.2f}')
+            st.metric('Sản lượng cân bằng (Q*)', f'{q_eq:.2f}')
+
+        with tab2:
+            st.markdown('**1. Hệ phương trình Cân bằng:**')
+            st.latex(r'''
+            \begin{cases} 
+            Q_d = 120 - P \\
+            Q_s = 20 + 1.5(P - T) 
+            \end{cases}
+            ''')
+            st.write('Tại điểm cân bằng, $Q_d = Q_s$. Khi Thuế Carbon ($T$) tăng, đường Cung dịch chuyển sang trái, làm giá tăng và sản lượng giảm.')
 
 elif menu == 'Bài 9: Spatial':
     st.title('Bài 9: Kinh tế Không gian')
