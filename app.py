@@ -14,17 +14,81 @@ menu = st.sidebar.radio('Danh mục 12 Bài', [
 ])
 
 if menu == 'Bài 1: Macro':
-    st.title('Bài 1: Hàm sản xuất Cobb-Douglas')
+    st.title('Bài 1: Hàm sản xuất Cobb-Douglas mở rộng')
+    st.markdown('Phân tích tác động của AI và Số hóa đến tăng trưởng kinh tế vĩ mô.')
+    
     col1, col2 = st.columns([1, 3])
+    
     with col1:
-        alpha = st.slider('Vốn', 0.0, 1.0, 0.33)
-        beta = st.slider('Lao động', 0.0, 1.0, 0.42)
-    with col2:
-        years = [2020, 2021, 2022, 2023, 2024, 2025]
-        y_real = [8044.4, 8487.5, 9513.3, 10221.8, 11511.9, 12847.6]
-        fig = go.Figure(go.Scatter(x=years, y=y_real, mode='lines+markers', name='GDP'))
-        st.plotly_chart(fig, use_container_width=True)
+        st.subheader('Hệ số co giãn')
+        alpha = st.slider('Vốn (α)', 0.0, 1.0, 0.33)
+        beta = st.slider('Lao động (β)', 0.0, 1.0, 0.42)
+        gamma = st.slider('Số hóa (γ)', 0.0, 1.0, 0.10)
+        delta = st.slider('Năng lực AI (δ)', 0.0, 1.0, 0.08)
+        theta = st.slider('Nhân lực số (θ)', 0.0, 1.0, 0.07)
+        
+        sum_params = alpha + beta + gamma + delta + theta
+        if round(sum_params, 2) == 1.00:
+            st.success(f'Tổng hệ số: {sum_params:.2f} (Chuẩn CRS)')
+        else:
+            st.warning(f'Tổng hệ số: {sum_params:.2f} (Cảnh báo: Nên = 1.0)')
 
+    with col2:
+        tab1, tab2, tab3 = st.tabs(['Khớp mô hình', 'Hạch toán Tăng trưởng', 'Dự báo 2030'])
+        
+        # Dữ liệu gốc
+        years = np.array([2020, 2021, 2022, 2023, 2024, 2025])
+        Y = np.array([8044.4, 8487.5, 9513.3, 10221.8, 11511.9, 12847.6])
+        K = np.array([16500, 17800, 19600, 21300, 23500, 25900])
+        L = np.array([53.6, 50.5, 51.7, 52.4, 52.9, 53.4])
+        D = np.array([12.0, 12.7, 14.3, 16.5, 18.3, 19.5])
+        AI = np.array([55.6, 60.2, 65.4, 67.0, 73.8, 80.1])
+        H = np.array([24.1, 26.1, 26.2, 27.0, 28.4, 29.2])
+
+        # Tính toán TFP và Y Dự báo
+        denom = (K**alpha) * (L**beta) * (D**gamma) * (AI**delta) * (H**theta)
+        At = Y / denom
+        A_mean = np.mean(At)
+        Y_pred = A_mean * denom
+        mape = np.mean(np.abs((Y - Y_pred) / Y)) * 100
+
+        with tab1:
+            col_m1, col_m2 = st.columns(2)
+            col_m1.metric('MAPE (Độ lệch chuẩn)', f'{mape:.2f}%')
+            col_m2.metric('TFP Trung bình', f'{A_mean:.4f}')
+
+            fig = go.Figure()
+            fig.add_trace(go.Scatter(x=years, y=Y, mode='lines+markers', name='GDP Thực tế', line=dict(color='#3b82f6', width=3)))
+            fig.add_trace(go.Scatter(x=years, y=Y_pred, mode='lines+markers', name='GDP Dự báo', line=dict(color='#f59e0b', width=3, dash='dash')))
+            fig.update_layout(title='GDP Thực tế vs Dự báo (Nghìn tỷ VND)', margin=dict(t=40, b=0, l=0, r=0))
+            st.plotly_chart(fig, use_container_width=True)
+
+        with tab2:
+            # Hạch toán tăng trưởng (CAGR)
+            g_Y = (np.power(Y[-1]/Y[0], 1/5) - 1) * 100
+            g_K = (np.power(K[-1]/K[0], 1/5) - 1) * 100
+            g_L = (np.power(L[-1]/L[0], 1/5) - 1) * 100
+            g_D = (np.power(D[-1]/D[0], 1/5) - 1) * 100
+            g_AI = (np.power(AI[-1]/AI[0], 1/5) - 1) * 100
+            g_H = (np.power(H[-1]/H[0], 1/5) - 1) * 100
+            g_A = (np.power(At[-1]/At[0], 1/5) - 1) * 100
+
+            labels = ['Vốn (K)', 'Lao động (L)', 'Số hóa (D)', 'AI', 'Nhân lực số (H)', 'TFP']
+            values = [alpha*g_K, beta*g_L, gamma*g_D, delta*g_AI, theta*g_H, g_A]
+
+            fig2 = px.pie(values=values, names=labels, hole=0.5)
+            fig2.update_layout(title=f'Đóng góp vào Tăng trưởng GDP (Tổng: {g_Y:.2f}%/năm)')
+            st.plotly_chart(fig2, use_container_width=True)
+
+        with tab3:
+            st.markdown('**Dự báo Vĩ mô năm 2030**')
+            A_2030 = At[-1] * (1.012**5)
+            K_2030 = K[-1] * (1.06**5)
+            L_2030 = L[-1] * (1.06**5)
+            Y_2030 = A_2030 * (K_2030**alpha) * (L_2030**beta) * (30.0**gamma) * (100.0**delta) * (35.0**theta)
+
+            st.metric('Kết quả GDP Dự báo (2030)', f'{(Y_2030/1000):.2f} triệu tỷ VNĐ')
+            st.info('Giả định đầu vào 2030: Vốn và Lao động tăng 6%/năm. TFP tăng 1.2%/năm. Số hóa đạt 30%, AI đạt 100k doanh nghiệp, Nhân lực số đạt 35%.')
 elif menu == 'Bài 2: LP':
     st.title('Bài 2: Phân bổ Ngân sách Tuyến tính')
     budget = st.slider('Ngân sách', 50, 150, 100)
