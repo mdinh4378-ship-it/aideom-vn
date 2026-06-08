@@ -460,11 +460,47 @@ elif menu == 'Bài 8: CGE':
             st.write('Tại điểm cân bằng, $Q_d = Q_s$. Khi Thuế Carbon ($T$) tăng, đường Cung dịch chuyển sang trái, làm giá tăng và sản lượng giảm.')
 
 elif menu == 'Bài 9: Spatial':
-    st.title('Bài 9: Kinh tế Không gian')
-    cost = st.slider('Phí vận chuyển', 0.01, 0.1, 0.05)
-    d = np.arange(0, 350, 50)
-    e = 1000 * 1.5 * np.exp(-cost * d)
-    st.area_chart(pd.DataFrame({'Khoảng cách': d, 'Mật độ': e}).set_index('Khoảng cách'))
+    st.title('Bài 9: Kinh tế học Không gian')
+    st.markdown('Mô hình Trọng lực: Sức hút của các Siêu đô thị và sự phân rã theo khoảng cách.')
+
+    col1, col2 = st.columns([1, 3])
+
+    with col1:
+        st.subheader('Tham số không gian')
+        friction = st.slider('Hệ số ma sát (Phí VC)', 0.01, 0.2, 0.05)
+        hub_power = st.slider('Sức hút Trung tâm (Hub)', 500, 2000, 1000)
+        st.write('Hệ số ma sát cao khiến mật độ kinh tế giảm cực nhanh khi đi xa khỏi trung tâm.')
+
+    with col2:
+        tab1, tab2 = st.tabs(['Đường cong Mật độ', 'Mô hình Toán học'])
+        
+        with tab1:
+            # Khoảng cách từ Hub ra ngoại vi (km)
+            distances = np.arange(0, 500, 10)
+            # Mật độ E(d) = Power * exp(-friction * d)
+            density = hub_power * np.exp(-friction * distances)
+            
+            df_spatial = pd.DataFrame({'Khoảng cách (km)': distances, 'Mật độ kinh tế': density})
+            
+            fig = px.area(df_spatial, x='Khoảng cách (km)', y='Mật độ kinh tế', 
+                          title='Sự suy giảm Mật độ Kinh tế theo khoảng cách')
+            st.plotly_chart(fig, use_container_width=True)
+            
+            st.info('Đồ thị cho thấy vùng "hinterland" (ngoại vi) cần hạ tầng kết nối tốt (giảm ma sát) để thu hẹp khoảng cách phát triển.')
+
+        with tab2:
+            st.markdown('**1. Hàm trọng lực không gian:**')
+            st.latex(r'''
+            E(d) = A \cdot e^{-\phi \cdot d}
+            ''')
+            st.write('Trong đó:')
+            st.write('- $E(d)$: Mật độ kinh tế tại khoảng cách $d$')
+            st.write('- $A$: Sức hút của Hub trung tâm')
+            st.write('- $\phi$: Hệ số ma sát vận chuyển/giao dịch')
+            st.write('- $d$: Khoảng cách địa lý')
+            
+            st.markdown('**2. Ứng dụng:**')
+            st.write('Mô hình này giúp quy hoạch đường cao tốc hoặc các cụm công nghiệp vệ tinh để điều phối dòng vốn đầu tư tối ưu.')
 
 elif menu == 'Bài 10: Stochastic 2':
     st.title('Bài 10: Giá trị VSS')
