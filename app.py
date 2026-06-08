@@ -226,13 +226,44 @@ elif menu == 'Bài 3: MIP':
             * **Ràng buộc Loại trừ:** $x_3 + x_4 \le 1$
             ''')
 elif menu == 'Bài 4: MOO':
-    st.title('Bài 4: Tối ưu Đa mục tiêu')
-    max_co2 = st.slider('Hạn ngạch CO2', -20, 80, 30)
-    co2 = np.arange(-20, 85, 5)
-    gdp = 40 + np.sqrt(np.clip((co2 + 20), 0, None)) * 5
-    fig = px.line(x=co2, y=gdp, labels={'x': 'CO2', 'y': 'GDP'})
-    fig.add_vline(x=max_co2, line_dash='dash', line_color='red')
-    st.plotly_chart(fig, use_container_width=True)
+    st.title('Bài 4: Tối ưu hóa Đa mục tiêu (MOO)')
+    st.markdown('Tìm tập hợp các phương án Pareto-Optimal giữa Tăng trưởng và Phát thải.')
+
+    col1, col2 = st.columns([1, 3])
+
+    with col1:
+        st.subheader('Tham số ràng buộc')
+        epsilon = st.slider('Ràng buộc phát thải (ε-CO2)', -20, 80, 30)
+        st.info(f'Giới hạn phát thải tối đa là {epsilon} đơn vị.')
+
+    with col2:
+        tab1, tab2 = st.tabs(['Đường biên Pareto', 'Phương pháp giải'])
+
+        with tab1:
+            # Tạo đường cong mô phỏng Pareto
+            co2_vals = np.arange(-20, 85, 5)
+            gdp_vals = 40 + np.sqrt(np.clip((co2_vals + 20), 0, None)) * 5
+            
+            df_pareto = pd.DataFrame({'CO2': co2_vals, 'GDP': gdp_vals})
+            
+            fig = px.line(df_pareto, x='CO2', y='GDP', title='Đường biên Pareto (Trade-off)')
+            # Điểm giải pháp tối ưu theo epsilon
+            optimal_gdp = 40 + np.sqrt(np.clip((epsilon + 20), 0, None)) * 5
+            fig.add_scatter(x=[epsilon], y=[optimal_gdp], mode='markers+text', 
+                            name='Giải pháp chọn', text=['Tối ưu'], textposition='top center',
+                            marker=dict(size=12, color='red'))
+            
+            st.plotly_chart(fig, use_container_width=True)
+            st.success(f'Tại mức phát thải {epsilon}, GDP tối đa đạt được là {optimal_gdp:.2f} nghìn tỷ.')
+
+        with tab2:
+            st.markdown('**1. Mô hình Epsilon-Constraint:**')
+            st.latex(r'''
+            \text{Maximize } f_1(x) = \text{GDP}(x) \\
+            \text{Subject to: } f_2(x) = \text{CO2}(x) \le \epsilon
+            ''')
+            st.markdown('**2. Ý nghĩa:**')
+            st.write('Bằng cách thay đổi giá trị $\epsilon$ (ngân sách phát thải), ta vẽ ra được toàn bộ đường biên Pareto, giúp nhà hoạch định thấy được cái giá phải trả (trade-off) nếu muốn giảm phát thải thêm một đơn vị.')
 
 elif menu == 'Bài 5: Stochastic 1':
     st.title('Bài 5: Tối ưu Ngẫu nhiên Cơ bản')
