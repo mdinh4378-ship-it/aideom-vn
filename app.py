@@ -99,7 +99,8 @@ elif menu == 'Bài 2: LP':
         st.subheader('Thông số đầu vào')
         budget = st.slider('Ngân sách (B)', 70, 150, 100)
         min_x3 = st.slider('Min Nhân lực (x3)', 10, 50, 20)
-        tech_ratio = st.slider('Tỷ trọng Công nghệ (%)', 10, 50, 35) / 100
+        tech_pct = st.slider('Tỷ trọng Công nghệ (%)', 10, 50, 35)
+        tech_ratio = tech_pct / 100.0
 
     with col2:
         tab1, tab2 = st.tabs(['Dashboard Tương tác', 'Mô hình Toán & Code'])
@@ -107,28 +108,24 @@ elif menu == 'Bài 2: LP':
         with tab1:
             from scipy.optimize import linprog
 
-            # Hàm mục tiêu: Maximize Z = 0.85*x1 + 1.20*x2 + 0.95*x3 + 1.35*x4
-            # Thuật toán linprog mặc định là Minimize, nên ta nhân hệ số với -1
+            # Hàm mục tiêu: Maximize Z
             c = [-0.85, -1.20, -0.95, -1.35]
 
-            # Ràng buộc bất phương trình (A_ub * x <= b_ub)
-            # 1. Tổng ngân sách: x1 + x2 + x3 + x4 <= budget
-            # 2. Tỷ trọng công nghệ: x2 + x4 >= tech_ratio * budget  =>  -x2 - x4 <= -tech_ratio * budget
+            # Ràng buộc bất phương trình
             A_ub = [
                 [1, 1, 1, 1],
                 [0, -1, 0, -1]
             ]
             b_ub = [budget, -tech_ratio * budget]
 
-            # Giới hạn cho từng biến (Bounds: min, max)
+            # Giới hạn cho từng biến
             bounds = [
-                (25, None),      # x1 >= 25
-                (15, None),      # x2 >= 15
-                (min_x3, None),  # x3 >= min_x3
-                (10, None)       # x4 >= 10
+                (25, None),      
+                (15, None),      
+                (min_x3, None),  
+                (10, None)       
             ]
 
-            # Giải bài toán
             res = linprog(c, A_ub=A_ub, b_ub=b_ub, bounds=bounds, method='highs')
 
             if res.success:
@@ -136,18 +133,98 @@ elif menu == 'Bài 2: LP':
                 x1, x2, x3, x4 = res.x
 
                 col_z, col_shadow = st.columns(2)
-                col_z.metric('Mục tiêu GDP (Z*)', f'{Z
+                col_z.metric('Mục tiêu GDP (Z*)', f'{Z:.2f} nghìn tỷ')
+                col_shadow.success('Bài toán có nghiệm tối ưu.')
+
+                alloc_data = pd.DataFrame({
+                    'Hạng mục': ['Hạ tầng số', 'AI & Dữ liệu', 'Nhân lực số', 'R&D Công nghệ'],
+                    'Phân bổ': [x1, x2, x3, x4]
+                })
+                
+                fig = px.bar(alloc_data, x='Phân bổ', y='Hạng mục', orientation='h', color='Hạng mục')
+                fig.update_layout(showlegend=False)
+                st.plotly_chart(fig, use_container_width=True)
+            else:
+                st.error(f'Bài toán VÔ NGHIỆM: Ngân sách {budget}k tỷ không đủ để đáp ứng các mức đầu tư tối thiểu và {tech_pct}% tỷ trọng công nghệ.')
+
+        with tab2:
+            st.markdown('**1. Triển khai code Python (Scipy):**')
+            st.code('''
+from scipy.optimize import linprog
+
+c = [-0.85, -1.20, -0.95, -1.35]
+A_ub = [[1, 1, 1, 1], [0, -1, 0, -1]]
+b_ub = [budget, -tech_ratio * budget]
+bounds = [(25, None), (15, None), (min_x3, None), (10, None)]
+
+res = linprog(c, A_ub=A_ub, b_ub=b_ub, bounds=bounds, method='highs')
+            ''', language='python')
 
 elif menu == 'Bài 3: MIP':
-    st.title('Bài 3: Lựa chọn Dự án')
-    budget = st.slider('Ngân sách MIP', 30, 150, 80)
-    st.write('Các dự án được chọn dựa trên thuật toán Knapsack.')
-    projects = {'TT Dữ liệu': 30, 'Nền tảng AI': 20, 'Kỹ sư AI': 15, 'Y tế': 25}
-    for k, v in projects.items():
-        if budget >= v:
-            st.success(f"Chọn: {k} (Phí: {v})")
-            budget -= v
+    st.title('Bài 3: Lựa chọn Dự án Đầu tư (MIP)')
+    st.markdown('Giải bài toán cái túi (Knapsack) với ràng buộc logic bằng thuật toán Quy hoạch nguyên.')
 
+    col1, col2 = st.columns([1, 3])
+
+    with col1:
+        st.subheader('Thông số')
+        budget_mip = st.slider('Ngân sách (B)', 30, 150, 80, key='b3')
+        use_prereq = st.checkbox('Bật Ràng buộc Tiền quyết (Nền tảng AI cần TT Dữ liệu)', value=True)
+        use_exclusive = st.checkbox('Bật Ràng buộc Loại trừ (Chỉ chọn 1: Y tế hoặc NN)', value=False)
+
+    with col2:
+        tab1, tab2 = st.tabs(['Kết quả Phân bổ', 'Mô hình Toán học'])
+
+        with tab1:
+            projects = [
+                {'id': 0, 'name': 'TT Dữ liệu Quốc gia', 'cost': 30, 'return': 50},
+                {'id': 1, 'name': 'Nền tảng AI Tiếng Việt', 'cost': 20, 'return': 35},
+                {'id': 2, 'name': 'Đào tạo 50k Kỹ sư', 'cost': 15, 'return': 25},
+                {'id': 3, 'name': 'Y tế Thông minh', 'cost': 25, 'return': 40},
+                {'id': 4, 'name': 'Nông nghiệp AI', 'cost': 10, 'return': 18}
+            ]
+
+            max_z = 0
+            best_x = [0, 0, 0, 0, 0]
+            used_b = 0
+
+            # Thuật toán Brute-force vét cạn 2^5 = 32 trường hợp
+            for i in range(32):
+                x = [(i >> j) & 1 for j in range(5)]
+                cost = sum(x[j] * projects[j]['cost'] for j in range(5))
+                
+                if cost > budget_mip: 
+                    continue
+                if use_prereq and x[1] > x[0]: 
+                    continue
+                if use_exclusive and (x[3] + x[4] > 1): 
+                    continue
+                
+                ret = sum(x[j] * projects[j]['return'] for j in range(5))
+                if ret > max_z:
+                    max_z = ret
+                    best_x = x
+                    used_b = cost
+
+            col_res1, col_res2 = st.columns(2)
+            col_res1.metric('Tổng Lợi ích (Z*)', f'{max_z} nghìn tỷ')
+            col_res2.metric('Ngân sách đã dùng', f'{used_b} / {budget_mip}')
+
+            st.markdown('**Danh sách dự án:**')
+            for j, p in enumerate(projects):
+                status = '✅ CHỌN' if best_x[j] else '❌ Bỏ qua'
+                color = 'green' if best_x[j] else 'gray'
+                st.markdown(f"- :{color}[**{status}**] - {p['name']} (Chi phí: {p['cost']}, Hoàn vốn: {p['return']})")
+
+        with tab2:
+            st.markdown('**Mô hình Quy hoạch Nguyên (MIP):**')
+            st.markdown(r'''
+            * **Biến quyết định:** $x_i \in \{0, 1\}$
+            * **Hàm mục tiêu:** Maximize $Z = 50x_0 + 35x_1 + 25x_2 + 40x_3 + 18x_4$
+            * **Ràng buộc Ngân sách:** $30x_0 + 20x_1 + 15x_2 + 25x_3 + 10x_4 \le B$
+            * **Ràng buộc Tiền quyết:** $x_1 \le x_0$
+            * **Ràng buộc Loại trừ:** $x_3 + x_4 \le 1$
+            ''')
 elif menu == 'Bài 4: MOO':
     st.title('Bài 4: Tối ưu Đa mục tiêu')
     max_co2 = st.slider('Hạn ngạch CO2', -20, 80, 30)
