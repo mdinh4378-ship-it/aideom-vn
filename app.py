@@ -320,14 +320,52 @@ elif menu == 'Bài 5: Stochastic 1':
             st.markdown('**2. Bản chất:** Đây là mô hình 2 giai đoạn: Giai đoạn 1 (Here-and-Now) quyết định $X$, Giai đoạn 2 (Recourse) xử lý phần thiếu hụt $D-X$ khi nhu cầu đã hiện thực hóa.')
     
 elif menu == 'Bài 6: DP':
-    st.title('Bài 6: Tối ưu Động')
-    inv = st.slider('Đầu tư hàng năm', 10, 50, 20)
-    k = 100
-    k_vals = []
-    for _ in range(5):
-        k_vals.append(k)
-        k = k*0.9 + inv
-    st.bar_chart(pd.DataFrame({'Năm': range(2026, 2031), 'Vốn': k_vals}).set_index('Năm'))
+    st.title('Bài 6: Tối ưu hóa Động (Dynamic Programming)')
+    st.markdown('Mô phỏng tích lũy Vốn ($K_t$) và Năng lực số qua 5 năm bằng phương trình Bellman.')
+
+    col1, col2 = st.columns([1, 3])
+
+    with col1:
+        st.subheader('Tham số trạng thái')
+        inv = st.slider('Đầu tư hàng năm ($I_t$)', 10, 50, 20)
+        depreciation = st.slider('Tỷ lệ khấu hao ($\delta$)', 0.05, 0.25, 0.10)
+        
+        st.info('Phương trình trạng thái:')
+        st.latex(r'K_{t+1} = (1 - \delta)K_t + I_t')
+
+    with col2:
+        tab1, tab2 = st.tabs(['Lộ trình Tích lũy Vốn', 'Giải thích Thuật toán'])
+        
+        with tab1:
+            # Giải phương trình trạng thái
+            K = 100 # Vốn ban đầu
+            k_vals = []
+            y_vals = []
+            for t in range(5):
+                Y = 10 * np.sqrt(K) # Hàm sản xuất: Y = A*K^0.5
+                k_vals.append(K)
+                y_vals.append(Y)
+                K = (1 - depreciation) * K + inv
+            
+            df_dp = pd.DataFrame({'Năm': range(2026, 2031), 'Vốn (K)': k_vals, 'GDP (Y)': y_vals})
+            
+            fig = go.Figure()
+            fig.add_trace(go.Bar(x=df_dp['Năm'], y=df_dp['Vốn (K)'], name='Vốn (K)'))
+            fig.add_trace(go.Scatter(x=df_dp['Năm'], y=df_dp['GDP (Y)'], name='GDP (Y)', mode='lines+markers', line=dict(width=3)))
+            fig.update_layout(title='Kết quả mô phỏng tích lũy vốn 2026-2030')
+            st.plotly_chart(fig, use_container_width=True)
+
+        with tab2:
+            st.markdown('**1. Nguyên lý tối ưu Bellman:**')
+            st.write('Giá trị của hiện tại phụ thuộc vào giá trị của tương lai.')
+            st.latex(r'''
+            V_t(K_t) = \max_{I_t} \{ Y_t + \beta V_{t+1}(K_{t+1}) \}
+            ''')
+            st.markdown('**2. Quy trình:**')
+            st.write('- **Trạng thái (State):** Vốn tích lũy $K_t$')
+            st.write('- **Quyết định (Action):** Mức đầu tư $I_t$')
+            st.write('- **Chuyển trạng thái:** Phương trình khấu hao và tái đầu tư.')
+            st.write('Đây là mô hình quy hoạch động xác định (Deterministic DP). Ở các bài sau, chúng ta sẽ mở rộng sang stochastic.')
 
 elif menu == 'Bài 7: RL':
     st.title('Bài 7: Học tăng cường')
