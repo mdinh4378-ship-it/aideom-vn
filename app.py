@@ -267,8 +267,57 @@ elif menu == 'Bài 4: MOO':
 
 elif menu == 'Bài 5: Stochastic 1':
     st.title('Bài 5: Tối ưu Ngẫu nhiên Cơ bản')
-    x = st.slider('Đầu tư máy chủ GĐ1', 0, 2500, 1000)
-    st.metric('Chi phí dự kiến', f"{x*10 + max(0, 1000-x)*25} Tỷ")
+    st.markdown('Bài toán "Người bán báo" (News-vendor Problem): Tối ưu số lượng đầu tư trong điều kiện nhu cầu không chắc chắn.')
+
+    col1, col2 = st.columns([1, 3])
+
+    with col1:
+        st.subheader('Biến quyết định (GĐ 1)')
+        investX = st.slider('Số lượng máy chủ (X)', 0, 2500, 1000, step=100)
+        
+        st.info('Giả định nhu cầu (Xác suất):')
+        st.write('- 30% Thấp (500)')
+        st.write('- 50% Bình thường (1000)')
+        st.write('- 20% Cao (2000)')
+
+    with col2:
+        tab1, tab2 = st.tabs(['Đường cong Chi phí Kỳ vọng', 'Giải thích thuật toán'])
+
+        with tab1:
+            # Thuật toán tính hàm kỳ vọng E[C(X)]
+            # Chi phí: Mua 10/cụm, Thuê bù 25/cụm
+            curve = []
+            min_cost = float('inf')
+            best_x = 0
+            
+            for x in range(0, 2600, 50):
+                # E[C(X)] = Sum(P_i * (x*10 + max(0, D_i - x)*25))
+                ec = 0.3*(x*10 + max(0, 500-x)*25) + 0.5*(x*10 + max(0, 1000-x)*25) + 0.2*(x*10 + max(0, 2000-x)*25)
+                curve.append({'x': x, 'cost': ec})
+                if ec < min_cost:
+                    min_cost = ec
+                    best_x = x
+            
+            df_curve = pd.DataFrame(curve)
+            current_cost = df_curve.loc[df_curve['x'] == investX, 'cost'].values[0]
+            
+            fig = px.line(df_curve, x='x', y='cost', title='Chi phí Kỳ vọng E[C(X)]')
+            fig.add_scatter(x=[investX], y=[current_cost], mode='markers', name='Điểm chọn', marker=dict(size=12, color='red'))
+            st.plotly_chart(fig, use_container_width=True)
+            
+            st.metric('Chi phí kỳ vọng tại X hiện tại', f'{current_cost:.0f} tỷ VND')
+            st.warning(f'Chi phí tối ưu đạt được tại X = {best_x} đơn vị.')
+
+        with tab2:
+            st.markdown('**1. Cấu trúc mô hình:**')
+            st.latex(r'''
+            \text{Minimize } E[C(X)] = C_m \cdot X + E[C_s \cdot \max(0, D - X)]
+            ''')
+            st.write('Trong đó:')
+            st.write('- $C_m$: Chi phí mua (10)')
+            st.write('- $C_s$: Chi phí thuê bù (25)')
+            st.write('- $D$: Nhu cầu ngẫu nhiên')
+            st.markdown('**2. Bản chất:** Đây là mô hình 2 giai đoạn: Giai đoạn 1 (Here-and-Now) quyết định $X$, Giai đoạn 2 (Recourse) xử lý phần thiếu hụt $D-X$ khi nhu cầu đã hiện thực hóa.')
     
 elif menu == 'Bài 6: DP':
     st.title('Bài 6: Tối ưu Động')
