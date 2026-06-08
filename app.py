@@ -90,10 +90,53 @@ if menu == 'Bài 1: Macro':
             st.metric('Kết quả GDP Dự báo (2030)', f'{(Y_2030/1000):.2f} triệu tỷ VNĐ')
             st.info('Giả định đầu vào 2030: Vốn và Lao động tăng 6%/năm. TFP tăng 1.2%/năm. Số hóa đạt 30%, AI đạt 100k doanh nghiệp, Nhân lực số đạt 35%.')
 elif menu == 'Bài 2: LP':
-    st.title('Bài 2: Phân bổ Ngân sách Tuyến tính')
-    budget = st.slider('Ngân sách', 50, 150, 100)
-    data = pd.DataFrame({'Hạng mục': ['Hạ tầng', 'AI', 'Nhân lực', 'R&D'], 'Phân bổ': [25, 15, 30, budget-70]})
-    st.bar_chart(data.set_index('Hạng mục'))
+    st.title('Bài 2: Phân bổ Ngân sách (Quy hoạch Tuyến tính)')
+    st.markdown('Tối ưu hóa 4 hạng mục đầu tư bằng mô hình Linear Programming (LP).')
+
+    col1, col2 = st.columns([1, 3])
+
+    with col1:
+        st.subheader('Thông số đầu vào')
+        budget = st.slider('Ngân sách (B)', 70, 150, 100)
+        min_x3 = st.slider('Min Nhân lực (x3)', 10, 50, 20)
+        tech_ratio = st.slider('Tỷ trọng Công nghệ (%)', 10, 50, 35) / 100
+
+    with col2:
+        tab1, tab2 = st.tabs(['Dashboard Tương tác', 'Mô hình Toán & Code'])
+
+        with tab1:
+            from scipy.optimize import linprog
+
+            # Hàm mục tiêu: Maximize Z = 0.85*x1 + 1.20*x2 + 0.95*x3 + 1.35*x4
+            # Thuật toán linprog mặc định là Minimize, nên ta nhân hệ số với -1
+            c = [-0.85, -1.20, -0.95, -1.35]
+
+            # Ràng buộc bất phương trình (A_ub * x <= b_ub)
+            # 1. Tổng ngân sách: x1 + x2 + x3 + x4 <= budget
+            # 2. Tỷ trọng công nghệ: x2 + x4 >= tech_ratio * budget  =>  -x2 - x4 <= -tech_ratio * budget
+            A_ub = [
+                [1, 1, 1, 1],
+                [0, -1, 0, -1]
+            ]
+            b_ub = [budget, -tech_ratio * budget]
+
+            # Giới hạn cho từng biến (Bounds: min, max)
+            bounds = [
+                (25, None),      # x1 >= 25
+                (15, None),      # x2 >= 15
+                (min_x3, None),  # x3 >= min_x3
+                (10, None)       # x4 >= 10
+            ]
+
+            # Giải bài toán
+            res = linprog(c, A_ub=A_ub, b_ub=b_ub, bounds=bounds, method='highs')
+
+            if res.success:
+                Z = -res.fun
+                x1, x2, x3, x4 = res.x
+
+                col_z, col_shadow = st.columns(2)
+                col_z.metric('Mục tiêu GDP (Z*)', f'{Z
 
 elif menu == 'Bài 3: MIP':
     st.title('Bài 3: Lựa chọn Dự án')
