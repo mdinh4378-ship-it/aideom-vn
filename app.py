@@ -503,12 +503,48 @@ elif menu == 'Bài 9: Spatial':
             st.write('Mô hình này giúp quy hoạch đường cao tốc hoặc các cụm công nghiệp vệ tinh để điều phối dòng vốn đầu tư tối ưu.')
 
 elif menu == 'Bài 10: Stochastic 2':
-    st.title('Bài 10: Giá trị VSS')
-    prob = st.slider('Xác suất Khủng hoảng', 0.0, 0.8, 0.2)
-    ev = (80*1.5 + 20*0.8)*(1-prob) + (80*0.2 + 20*2.0)*prob
-    sp = (40*1.5 + 60*0.8)*(1-prob) + (40*0.2 + 60*2.0)*prob
-    st.metric('Chỉ số VSS', round(sp - ev, 2))
-    st.bar_chart(pd.DataFrame({'Mô hình': ['EV', 'SP'], 'Lợi nhuận': [ev, sp]}).set_index('Mô hình'))
+    st.title('Bài 10: Quy hoạch ngẫu nhiên 2 giai đoạn')
+    st.markdown('Đánh giá Giá trị của Giải pháp Ngẫu nhiên (VSS) dưới rủi ro Khủng hoảng.')
+
+    col1, col2 = st.columns([1, 3])
+
+    with col1:
+        st.subheader('Thông số kịch bản')
+        prob_crisis = st.slider('Xác suất Khủng hoảng (p)', 0.0, 0.8, 0.2)
+        st.info('Kịch bản: AI sinh lời cao lúc bình thường, nhưng Nhân lực là khoản đầu tư phòng thủ an toàn lúc khủng hoảng.')
+
+    with col2:
+        tab1, tab2 = st.tabs(['Phân tích VSS', 'Mô hình Toán học'])
+        
+        with tab1:
+            # EV (Expected Value) Strategy: Đầu tư mù quáng vào AI (LN lúc nào cũng cao)
+            # SP (Stochastic Program) Strategy: Đầu tư phòng thủ, dồn vốn vào Nhân lực (H)
+            
+            # Tỷ suất sinh lời: Bình thường (AI=1.5, H=0.8) | Khủng hoảng (AI=0.2, H=2.0)
+            evProfit = (80*1.5 + 20*0.8) * (1 - prob_crisis) + (80*0.2 + 20*2.0) * prob_crisis
+            spProfit = (40*1.5 + 60*0.8) * (1 - prob_crisis) + (40*0.2 + 60*2.0) * prob_crisis
+            vss = spProfit - evProfit
+            
+            df_vss = pd.DataFrame({
+                'Kế hoạch': ['Ngây thơ (EV)', 'Ngẫu nhiên (SP)'],
+                'Kỳ vọng': [evProfit, spProfit]
+            })
+            
+            fig = px.bar(df_vss, x='Kế hoạch', y='Kỳ vọng', color='Kế hoạch', 
+                         title='So sánh Lợi nhuận Kỳ vọng giữa EV và SP')
+            st.plotly_chart(fig, use_container_width=True)
+            
+            st.metric('Giá trị VSS (Lợi ích vượt trội)', f'+{max(0, vss):.2f}')
+            st.write('VSS > 0 chứng minh việc lập kế hoạch dựa trên kịch bản ngẫu nhiên luôn mang lại lợi ích kinh tế cao hơn.')
+
+        with tab2:
+            st.markdown('**1. Cấu trúc mô hình 2 giai đoạn:**')
+            st.latex(r'''
+            \text{Min } c^T x + E_{\omega} [Q(x, \omega)]
+            ''')
+            st.write('- **GĐ1 (x):** Quyết định đầu tư trước khi biết kịch bản.')
+            st.write('- **GĐ2 (Q):** Quyết định điều chỉnh (Recourse) tùy thuộc vào kịch bản $\omega$.')
+            st.write('- **VSS:** Đo lường chi phí cơ hội nếu chúng ta dự báo sai rủi ro ngay từ đầu.')
 
 elif menu == 'Bài 11: DQN':
     st.title('Bài 11: Deep Q-Network')
